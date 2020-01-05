@@ -1,7 +1,8 @@
+#include <RingBuf.h>
 #include <Wire.h>
 #include <Adafruit_MMA8451.h>
 #include <Adafruit_Sensor.h>
-#include "Ringbuf.h"
+
 
 Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
