@@ -1,19 +1,62 @@
+#include <StateMachine.h>
 #include <RingBuf.h>
 #include <Wire.h>
 #include <Adafruit_MMA8451.h>
 #include <Adafruit_Sensor.h>
 
-
 Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
-// 30 sec of z axis samples
-#define RING_BUFFER_SIZE 30
+#define SAMPLE_PERIOD_MS 1000
+#define RING_BUFFER_SIZE 10 // seconds of samples
 RingBuf<float, RING_BUFFER_SIZE> ringBuffer;
+
+StateMachine stateMachine = StateMachine();
+State* Clean = stateMachine.addState(&clean);
+State* Unloading = stateMachine.addState(&unloading);
+State* Loadable = stateMachine.addState(&loadable);
+State* Running = stateMachine.addState(&running);
+
+void clean() {
+  
+}
+
+bool transitionCleanUnloading() {
+  
+}
+
+void unloading() {
+  
+}
+
+bool transitionUnloadingLoadable() {
+  
+}
+
+void loadable() {
+  
+}
+
+bool transitionLoadableRunning() {
+  
+}
+
+void running() {
+  
+}
+
+bool transitionRunningClean() {
+  
+}
 
 void setup() {
   Serial.begin(9600);
   initializeMma();
   ringBuffer.clear();
+
+  Clean->addTransition(&transitionCleanUnloading, Unloading);
+  Unloading->addTransition(&transitionUnloadingLoadable, Loadable);
+  Loadable->addTransition(&transitionLoadableRunning, Running);
+  Running->addTransition(&transitionRunningClean, Clean);
 }
 
 void loop() {
@@ -27,7 +70,8 @@ void loop() {
   Serial.print(" Y: "); Serial.print(event.acceleration.y);
   Serial.print(" Z: "); Serial.println(event.acceleration.z);
   Serial.println();
-  delay(1000);
+  stateMachine.run();
+  delay(SAMPLE_PERIOD_MS);
 }
 
 void initializeMma() {
