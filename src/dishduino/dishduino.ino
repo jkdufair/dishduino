@@ -25,15 +25,15 @@ bool transitionCleanUnloading() {
 }
 
 void unloading() {
-  
+  Serial.println("unloading");
 }
 
 bool transitionUnloadingLoadable() {
-  
+  return ringBufferAvg() > -2.0;
 }
 
 void loadable() {
-  
+  Serial.println("loadable");
 }
 
 bool transitionLoadableRunning() {
@@ -48,15 +48,22 @@ bool transitionRunningClean() {
   
 }
 
+//temp
+bool transitionLoadableUnloading() {
+  return ringBufferAvg() < -2.0;
+}
+
 void setup() {
   Serial.begin(9600);
   initializeMma();
   ringBuffer.clear();
+  stateMachine.transitionTo(Loadable);
 
-  Clean->addTransition(&transitionCleanUnloading, Unloading);
+  //Clean->addTransition(&transitionCleanUnloading, Unloading);
   Unloading->addTransition(&transitionUnloadingLoadable, Loadable);
-  Loadable->addTransition(&transitionLoadableRunning, Running);
-  Running->addTransition(&transitionRunningClean, Clean);
+  //Loadable->addTransition(&transitionLoadableRunning, Unloading);
+  Loadable->addTransition(&transitionLoadableUnloading, Unloading); 
+  //Running->addTransition(&transitionRunningClean, Clean);
 }
 
 void loop() {
@@ -66,10 +73,10 @@ void loop() {
   sampleData(event);
   
   /* Display the results (acceleration is measured in m/s^2) */
-  Serial.print("X: "); Serial.print(event.acceleration.x);
-  Serial.print(" Y: "); Serial.print(event.acceleration.y);
-  Serial.print(" Z: "); Serial.println(event.acceleration.z);
-  Serial.println();
+  //Serial.print("X: "); Serial.print(event.acceleration.x);
+  //Serial.print(" Y: "); Serial.print(event.acceleration.y);
+  //Serial.print(" Z: "); Serial.println(event.acceleration.z);
+  //Serial.println();
   stateMachine.run();
   delay(SAMPLE_PERIOD_MS);
 }
@@ -90,7 +97,7 @@ void sampleData(sensors_event_t event) {
   if (ringBuffer.isFull())
     ringBuffer.pop(data);
   ringBuffer.push(event.acceleration.z);
-  printRingBuffer();  
+  //printRingBuffer();  
 }
 
 void printRingBuffer() {
@@ -100,4 +107,41 @@ void printRingBuffer() {
     Serial.print(" ");
   }
   Serial.println();
+}
+
+float ringBufferAvg() {
+  const int size = ringBuffer.size();
+  float sum = 0;
+  for (int i = 0; i < size; i++) {
+    sum += ringBuffer[i];
+  }
+  return sum/size;
+}
+
+float ringBufferMin() {
+  const int size = ringBuffer.size();
+  float min = 10.0;
+    for (int i = 0; i < size; i++) {
+    if (ringBuffer[i] < min) {
+      min = ringBuffer[i];
+    }
+  }
+  return min;
+}
+
+float ringBufferMax() {
+  const int size = ringBuffer.size();
+  float max = -10.0;
+    for (int i = 0; i < size; i++) {
+    if (ringBuffer[i] > max) {
+      max = ringBuffer[i];
+    }
+  }
+  return max;  
+}
+
+float ringBufferVariance() {
+  float min = ringBufferMin();
+  float max = ringBufferMax();
+  return max - min;
 }
