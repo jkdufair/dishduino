@@ -8,7 +8,7 @@ Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
 #define SAMPLE_PERIOD_MS 1000
 #define RING_BUFFER_SIZE 10 // seconds of samples
-RingBuf<float, RING_BUFFER_SIZE> ringBuffer;
+RingBuf<sensors_vec_t, RING_BUFFER_SIZE> ringBuffer;
 
 StateMachine stateMachine = StateMachine();
 State* Clean = stateMachine.addState(&clean);
@@ -29,7 +29,8 @@ void unloading() {
 }
 
 bool transitionUnloadingLoadable() {
-  return ringBufferAvg() > -2.0;
+  Serial.print("tul avg: "); Serial.println(ringBufferAvg().z);
+  return ringBufferAvg().z > -2.0;
 }
 
 void loadable() {
@@ -50,7 +51,8 @@ bool transitionRunningClean() {
 
 //temp
 bool transitionLoadableUnloading() {
-  return ringBufferAvg() < -2.0;
+  Serial.print("tlu avg: "); Serial.println(ringBufferAvg().z);
+  return ringBufferAvg().z < -2.0;
 }
 
 void setup() {
@@ -73,10 +75,10 @@ void loop() {
   sampleData(event);
   
   /* Display the results (acceleration is measured in m/s^2) */
-  //Serial.print("X: "); Serial.print(event.acceleration.x);
-  //Serial.print(" Y: "); Serial.print(event.acceleration.y);
-  //Serial.print(" Z: "); Serial.println(event.acceleration.z);
-  //Serial.println();
+  Serial.print("X: "); Serial.print(event.acceleration.x);
+  Serial.print(" Y: "); Serial.print(event.acceleration.y);
+  Serial.print(" Z: "); Serial.println(event.acceleration.z);
+  Serial.println();
   stateMachine.run();
   delay(SAMPLE_PERIOD_MS);
 }
@@ -93,55 +95,81 @@ void initializeMma() {
 }
 
 void sampleData(sensors_event_t event) {
-  float data;
+  sensors_vec_t data;
   if (ringBuffer.isFull())
     ringBuffer.pop(data);
-  ringBuffer.push(event.acceleration.z);
+  ringBuffer.push(event.acceleration);
   //printRingBuffer();  
 }
 
 void printRingBuffer() {
   const int size = ringBuffer.size();
   for (int i = 0; i < size; i++) {
-    Serial.print(ringBuffer[i]);
-    Serial.print(" ");
+    //Serial.print(ringBuffer[i]);
+    //Serial.print(" ");
   }
   Serial.println();
 }
 
-float ringBufferAvg() {
+sensors_vec_t ringBufferAvg() {
   const int size = ringBuffer.size();
-  float sum = 0;
+  sensors_vec_t sum;
+  sum.x = 0.0f;
+  sum.y = 0.0f;
+  sum.z = 0.0f;
   for (int i = 0; i < size; i++) {
-    sum += ringBuffer[i];
+    sum.x += ringBuffer[i].x;
+    sum.y += ringBuffer[i].y;
+    sum.z += ringBuffer[i].z;
   }
-  return sum/size;
+  sum.x = sum.x/size;
+  sum.y = sum.y/size;
+  sum.z = sum.z/size;
+  return sum;
 }
 
-float ringBufferMin() {
+sensors_vec_t ringBufferMin() {
   const int size = ringBuffer.size();
-  float min = 10.0;
+  sensors_vec_t min;
+  min.x = 10;
+  min.y = 10;
+  min.z = 10;
     for (int i = 0; i < size; i++) {
-    if (ringBuffer[i] < min) {
-      min = ringBuffer[i];
+    if (ringBuffer[i].x < min.x) {
+      min.x = ringBuffer[i].x;
+    }
+    if (ringBuffer[i].y < min.y) {
+      min.y = ringBuffer[i].y;
+    }
+    if (ringBuffer[i].z < min.z) {
+      min.z = ringBuffer[i].z;
     }
   }
   return min;
 }
 
-float ringBufferMax() {
+sensors_vec_t ringBufferMax() {
   const int size = ringBuffer.size();
-  float max = -10.0;
+  sensors_vec_t max;
+  max.x = -10;
+  max.y = -10;
+  max.z = -10;
     for (int i = 0; i < size; i++) {
-    if (ringBuffer[i] > max) {
-      max = ringBuffer[i];
+    if (ringBuffer[i].x > max.x) {
+      max.x = ringBuffer[i].x;
+    }
+    if (ringBuffer[i].y > max.y) {
+      max.y = ringBuffer[i].y;
+    }
+    if (ringBuffer[i].z > max.z) {
+      max.z = ringBuffer[i].z;
     }
   }
-  return max;  
+  return max;
 }
 
-float ringBufferVariance() {
-  float min = ringBufferMin();
-  float max = ringBufferMax();
-  return max - min;
+float ringBufferZVariance() {
+  //float min = ringBufferZMin();
+  //float max = ringBufferZMax();
+  //return max - min;
 }
